@@ -1,0 +1,115 @@
+// Life Dashboard - Prisma Schema
+// SQLite database for user data, tasks, goals, habits, finances, notes
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id        String   @id @default(cuid())
+  email     String   @unique
+  password  String
+  name      String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  tasks       Task[]
+  goals       Goal[]
+  habits      Habit[]
+  finances    Finance[]
+  notes       Note[]
+  activityLogs ActivityLog[]
+}
+
+model ActivityLog {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  action    String   // e.g. task_created, habit_logged
+  entityId  String?  // id of task/goal/habit etc
+  meta      String?  // optional JSON for extra context
+  createdAt DateTime @default(now())
+
+  @@index([userId])
+  @@index([createdAt])
+}
+
+model Task {
+  id          String    @id @default(cuid())
+  title       String
+  completed   Boolean   @default(false)
+  priority    String    @default("medium") // low, medium, high
+  deadline    DateTime?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  userId      String
+  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model Goal {
+  id        String   @id @default(cuid())
+  title     String
+  progress  Int      @default(0) // 0-100
+  status    String   @default("active") // active, completed, paused
+  deadline  DateTime?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model Habit {
+  id        String     @id @default(cuid())
+  name      String
+  createdAt DateTime   @default(now())
+  updatedAt DateTime   @updatedAt
+  userId    String
+  user      User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  logs      HabitLog[]
+}
+
+model HabitLog {
+  id        String   @id @default(cuid())
+  date      String   // YYYY-MM-DD
+  completed Boolean  @default(true)
+  createdAt DateTime @default(now())
+  habitId   String
+  habit     Habit   @relation(fields: [habitId], references: [id], onDelete: Cascade)
+
+  @@unique([habitId, date])
+  @@index([habitId])
+  @@index([date])
+}
+
+model Finance {
+  id         String   @id @default(cuid())
+  type       String   // income | expense
+  amount     Float
+  category   String
+  description String?
+  date       DateTime
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+  userId     String
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([date])
+}
+
+model Note {
+  id        String   @id @default(cuid())
+  title     String?
+  content   String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+}
